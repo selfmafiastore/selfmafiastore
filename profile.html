@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mafia User Profile</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    img.preview {
+      width: 100px;
+      margin-top: 10px;
+      display: block;
+    }
+  </style>
+</head>
+<body style="font-family:sans-serif; padding:20px; max-width:500px; margin:auto;">
+
+  <h2>Mafia Store User Verification 🕵️‍♂️</h2>
+
+  <form id="profileForm">
+    <label>Business Name:</label><br>
+    <input type="text" id="business" required><br><br>
+
+    <label>Full Name:</label><br>
+    <input type="text" id="fullname" required><br><br>
+
+    <label>Father/Husband Name:</label><br>
+    <input type="text" id="guardian" required><br><br>
+
+    <label>CNIC Number:</label><br>
+    <input type="text" id="cnic" placeholder="35201-1234567-1" required><br><br>
+
+    <label>Complete Address:</label><br>
+    <textarea id="address" required></textarea><br><br>
+
+    <label>Upload Face Photo:</label><br>
+    <input type="file" id="face" accept="image/*" required><br>
+    <img id="facePreview" class="preview"><br>
+
+    <label>Upload CNIC Front:</label><br>
+    <input type="file" id="cnicFront" accept="image/*" required><br>
+    <img id="frontPreview" class="preview"><br>
+
+    <label>Upload CNIC Back:</label><br>
+    <input type="file" id="cnicBack" accept="image/*" required><br>
+    <img id="backPreview" class="preview"><br>
+
+    <button type="submit">Submit</button>
+  </form>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const supabase = createClient(
+  'https://vjqkznjejpzwncoelyvd.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqcWt6bmplanB6d25jb2VseXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwOTg2MDgsImV4cCI6MjA2ODY3NDYwOH0.2B4HcfnDXolf7YUAaoHx5Ax2XK1pQRmcfdFl-zq4CSY'
+);
+
+// Auto fill saved data
+window.onload = () => {
+  const fields = ["business", "fullname", "guardian", "cnic", "address"];
+  fields.forEach(id => {
+    const value = localStorage.getItem(id);
+    if (value) document.getElementById(id).value = value;
+  });
+};
+
+// Auto-save fields
+["business", "fullname", "guardian", "cnic", "address"].forEach(id => {
+  document.getElementById(id).addEventListener("input", () => {
+    localStorage.setItem(id, document.getElementById(id).value);
+  });
+});
+
+// Show preview on file upload
+function handlePreview(inputId, previewId) {
+  document.getElementById(inputId).addEventListener("change", function() {
+    const file = this.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        document.getElementById(previewId).src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+}
+handlePreview("face", "facePreview");
+handlePreview("cnicFront", "frontPreview");
+handlePreview("cnicBack", "backPreview");
+
+document.getElementById("profileForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+
+  try {
+    const email = localStorage.getItem("userEmail");
+    if (!email) return alert("❌ Please login first");
+
+    const uid = email.replace(/[^a-zA-Z0-9]/g, "_");
+
+    const business = document.getElementById("business").value;
+    const fullname = document.getElementById("fullname").value;
+    const guardian = document.getElementById("guardian").value;
+    const cnic = document.getElementById("cnic").value;
+    const address = document.getElementById("address").value;
+
+    async function uploadFile(inputId, path) {
+      const file = document.getElementById(inputId).files[0];
+      if (!file) throw new Error(`Missing file: ${path}`);
+      const { data, error } = await supabase.storage.from("users").upload(`${uid}/${path}`, file, { upsert: true });
+      if (error) throw error;
+      return data.path;
+    }
+
+    const facePath = await uploadFile("face", "face.jpg");
+    const frontPath = await uploadFile("cnicFront", "cnic-front.jpg");
+    const backPath = await uploadFile("cnicBack", "cnic-back.jpg");
+
+    const { error } = await supabase.from("users").upsert({
+      id: uid,
+      email,
+      business,
+      fullname,
+      guardian,
+      cnic,
+      address,
+      face_img: facePath,
+      cnic_front: frontPath,
+      cnic_back: backPath,
+    });
+
+    if (error) throw error;
+
+    alert("✅ Profile submitted!");
+    localStorage.removeItem("business");
+    localStorage.removeItem("fullname");
+    localStorage.removeItem("guardian");
+    localStorage.removeItem("cnic");
+    localStorage.removeItem("address");
+    window.location.href = "dashboard.html";
+
+  } catch (err) {
+    alert("❌ Error: " + err.message);
+    console.error(err);
+  }
+});
+</script>
+</body>
+</html>
