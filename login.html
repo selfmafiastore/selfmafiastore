@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mafia Store Login 🛒</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    const supabase = createClient(
+      "https://vjqkznjejpzwncoelyvd.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqcWt6bmplanB6d25jb2VseXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwOTg2MDgsImV4cCI6MjA2ODY3NDYwOH0.2B4HcfnDXolf7YUAaoHx5Ax2XK1pQRmcfdFl-zq4CSY"
+    );
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const form = document.getElementById("login-form");
+      const emailInput = document.getElementById("email");
+
+      // Auto-fill email if saved
+      const savedEmail = localStorage.getItem("user_email");
+      if (savedEmail) {
+        emailInput.value = savedEmail;
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const email = emailInput.value.trim();
+        if (!email) return alert("❌ Please enter your email.");
+
+        // Save to localStorage
+        localStorage.setItem("userEmail", email);
+
+        // Insert in Supabase (ignore duplicate error)
+        const { error } = await supabase.from("users").insert([{ email }]);
+        if (error && error.code !== "23505") {
+          return alert("❌ Supabase error: " + error.message);
+        }
+
+        // Redirect to profile.html
+        window.location.href = "profile.html";
+      });
+    });
+  </script>
+  <style>
+    body {
+      background: #0f172a;
+      color: #f8fafc;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      padding: 60px 20px;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 20px;
+    }
+    input[type="email"] {
+      padding: 12px 20px;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: none;
+      width: 280px;
+      max-width: 90%;
+      margin-bottom: 20px;
+    }
+    button {
+      background: #22c55e;
+      color: black;
+      padding: 12px 30px;
+      border-radius: 8px;
+      border: none;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #16a34a;
+    }
+  </style>
+</head>
+<body>
+  <h1>Welcome to Mafia Store 🛒😎</h1>
+  <form id="login-form">
+    <input type="email" id="email" placeholder="Enter your email" required /><br />
+    <button type="submit">Save & Continue</button>
+  </form>
+</body>
+</html>
